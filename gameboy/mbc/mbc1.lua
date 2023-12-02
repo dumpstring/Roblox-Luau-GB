@@ -13,7 +13,7 @@ function Mbc1.new()
 	mbc1.mt.__index = function(_: any, address)
 		-- Lower 16k: return the first bank, always
 		if address <= 0x3FFF then
-			return mbc1.raw_data[address]
+			return mbc1.raw_data[address] or 0
 		end
 		-- Upper 16k: return the currently selected bank
 		if address >= 0x4000 and address <= 0x7FFF then
@@ -21,7 +21,7 @@ function Mbc1.new()
 			if mbc1.mode == 0 then
 				rom_bank = rom_bank + bit32.lshift(mbc1.ram_bank, 5)
 			end
-			return mbc1.raw_data[(rom_bank * 16 * 1024) + (address - 0x4000)]
+			return mbc1.raw_data[(rom_bank * 16 * 1024) + (address - 0x4000)] or 0
 		end
 
 		if address >= 0xA000 and address <= 0xBFFF and mbc1.ram_enable then

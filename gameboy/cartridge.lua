@@ -87,13 +87,6 @@ function Cartridge.new(modules)
 			cartridge.gameboy.type = cartridge.gameboy.types.dmg
 		end
 
-		-- Add a guard to cartridge.raw_data, such that any out-of-bounds reads return 0x00
-		cartridge.raw_data.mt = {}
-		cartridge.raw_data.mt.__index = function(_: any, address)
-			-- Data doesn't exist? Tough luck; return 0x00
-			return 0x00
-		end
-
 		setmetatable(cartridge.raw_data, cartridge.raw_data.mt)
 	end
 

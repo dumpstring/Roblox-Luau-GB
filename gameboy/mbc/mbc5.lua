@@ -14,17 +14,17 @@ function Mbc5.new()
 	mbc5.mt.__index = function(_: any, address)
 		-- Lower 16k: return the first bank, always
 		if address <= 0x3FFF then
-			return mbc5.raw_data[address]
+			return mbc5.raw_data[address] or 0
 		end
 		-- Upper 16k: return the currently selected bank
 		if address >= 0x4000 and address <= 0x7FFF then
 			local rom_bank = mbc5.rom_bank
-			return mbc5.raw_data[(rom_bank * 16 * 1024) + (address - 0x4000)]
+			return mbc5.raw_data[(rom_bank * 16 * 1024) + (address - 0x4000)] or 0
 		end
 
 		if address >= 0xA000 and address <= 0xBFFF and mbc5.ram_enable then
 			local ram_bank = mbc5.ram_bank
-			return mbc5.external_ram[(address - 0xA000) + (ram_bank * 8 * 1024)]
+			return mbc5.external_ram[(address - 0xA000) + (ram_bank * 8 * 1024)] or 0
 		end
 		return 0x00
 	end

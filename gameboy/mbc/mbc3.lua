@@ -20,12 +20,12 @@ function Mbc3.new()
 	mbc3.mt.__index = function(_: any, address)
 		-- Lower 16k: return the first bank, always
 		if address <= 0x3FFF then
-			return mbc3.raw_data[address]
+			return mbc3.raw_data[address] or 0
 		end
 		-- Upper 16k: return the currently selected bank
 		if address >= 0x4000 and address <= 0x7FFF then
 			local rom_bank = mbc3.rom_bank
-			return mbc3.raw_data[(rom_bank * 16 * 1024) + (address - 0x4000)]
+			return mbc3.raw_data[(rom_bank * 16 * 1024) + (address - 0x4000)] or 0
 		end
 
 		if address >= 0xA000 and address <= 0xBFFF and mbc3.ram_enable then
@@ -40,45 +40,26 @@ function Mbc3.new()
 	end
 	mbc3.mt.__newindex = function(_: any, address, value)
 		if address <= 0x1FFF then
-			if bit32.band(0x0A, value) == 0x0A then
-				mbc3.ram_enable = true
-			else
-				mbc3.ram_enable = false
-			end
-			return
-		end
-		if address >= 0x2000 and address <= 0x3FFF then
+			mbc3.ram_enable = (bit32.band(0x0A, value) == 0x0A)
+		elseif address >= 0x2000 and address <= 0x3FFF then
 			-- Select the lower 7 bits of the ROM bank
 			value = bit32.band(value, 0x7F)
-			if value == 0 then
-				value = 1
-			end
-			mbc3.rom_bank = value
-			return
-		end
-		if address >= 0x4000 and address <= 0x5FFF then
+			mbc3.rom_bank = value == 0 and 1 or value
+		elseif address >= 0x4000 and address <= 0x5FFF then
 			mbc3.rtc_enable = false
 			if value <= 0x03 then
 				mbc3.ram_bank = bit32.band(value, 0x03)
-				return
-			end
-			if value >= 0x08 and value <= 0x0C then
+			elseif value >= 0x08 and value <= 0x0C then
 				mbc3.rtc_enable = true
 				mbc3.rtc_select = value
-				return
 			end
-		end
-		if address >= 0x6000 and address <= 0x7FFF then
+		-- elseif address >= 0x6000 and address <= 0x7FFF then
 			-- Would "latch" the RTC registers, not implemented
-			return
-		end
-
-		-- Handle actually writing to External RAM
-		if address >= 0xA000 and address <= 0xBFFF and mbc3.ram_enable then
+		elseif address >= 0xA000 and address <= 0xBFFF and mbc3.ram_enable then
+			-- Handle actually writing to External RAM
 			local ram_bank = mbc3.ram_bank
 			mbc3.external_ram[(address - 0xA000) + (ram_bank * 8 * 1024)] = value
 			mbc3.external_ram.dirty = true
-			return
 		end
 	end
 

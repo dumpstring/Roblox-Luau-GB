@@ -7,9 +7,7 @@ function MbcNone.new()
 	mbc_none.raw_data = {}
 	mbc_none.external_ram = {}
 	mbc_none.header = {}
-	mbc_none.mt.__index = function(_: any, address)
-		return mbc_none.raw_data[address]
-	end
+	mbc_none.mt.__index = mbc_none.raw_data
 	mbc_none.mt.__newindex = function(_: any, address, value)
 		--do nothing!
 		return
