@@ -148,6 +148,7 @@ end
 
 Gameboy.new = function(overrides)
 	local new_gameboy = {}
+	overrides = overrides or {}
 
 	for k, v in pairs(gameboy_defaults) do
 		if overrides[k] then

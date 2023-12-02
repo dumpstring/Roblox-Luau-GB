@@ -48,9 +48,9 @@ function Cartridge.new(modules)
 		cartridge.gameboy = gameboy
 	end
 
-	cartridge.load = function(file_data, size)
+	cartridge.load = function(file_data, size: number)
 		print("Reading cartridge into memory...")
-		cartridge.raw_data = {}
+		cartridge.raw_data = table.create(size + 1)
 		for i = 0, size - 1 do
 			cartridge.raw_data[i] = file_data:byte(i + 1)
 		end
