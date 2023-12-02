@@ -1,10 +1,4 @@
-local bit32 = require("bit")
-
-local lshift = bit32.lshift
-local rshift = bit32.rshift
-local band = bit32.band
-
-function apply(opcodes, opcode_cycles, z80, memory)
+local function apply(opcodes, opcode_cycles, z80, memory)
 	local read_at_hl = z80.read_at_hl
 	local set_at_hl = z80.set_at_hl
 	local read_nn = z80.read_nn
@@ -288,7 +282,7 @@ function apply(opcodes, opcode_cycles, z80, memory)
 	opcode_cycles[0xFA] = 16
 	opcodes[0xFA] = function()
 		local lower = read_nn()
-		local upper = lshift(read_nn(), 8)
+		local upper = bit32.lshift(read_nn(), 8)
 		reg.a = read_byte(upper + lower)
 	end
 
@@ -306,7 +300,7 @@ function apply(opcodes, opcode_cycles, z80, memory)
 	opcode_cycles[0xEA] = 16
 	opcodes[0xEA] = function()
 		local lower = read_nn()
-		local upper = lshift(read_nn(), 8)
+		local upper = bit32.lshift(read_nn(), 8)
 		write_byte(upper + lower, reg.a)
 	end
 
@@ -338,28 +332,28 @@ function apply(opcodes, opcode_cycles, z80, memory)
 	opcode_cycles[0x22] = 8
 	opcodes[0x22] = function()
 		set_at_hl(reg.a)
-		reg.set_hl(band(reg.hl() + 1, 0xFFFF))
+		reg.set_hl(bit32.band(reg.hl() + 1, 0xFFFF))
 	end
 
 	-- ldi a, (HL)
 	opcode_cycles[0x2A] = 8
 	opcodes[0x2A] = function()
 		reg.a = read_at_hl()
-		reg.set_hl(band(reg.hl() + 1, 0xFFFF))
+		reg.set_hl(bit32.band(reg.hl() + 1, 0xFFFF))
 	end
 
 	-- ldd (HL), a
 	opcode_cycles[0x32] = 8
 	opcodes[0x32] = function()
 		set_at_hl(reg.a)
-		reg.set_hl(band(reg.hl() - 1, 0xFFFF))
+		reg.set_hl(bit32.band(reg.hl() - 1, 0xFFFF))
 	end
 
 	-- ldd a, (HL)
 	opcode_cycles[0x3A] = 8
 	opcodes[0x3A] = function()
 		reg.a = read_at_hl()
-		reg.set_hl(band(reg.hl() - 1, 0xFFFF))
+		reg.set_hl(bit32.band(reg.hl() - 1, 0xFFFF))
 	end
 
 	-- ====== GMB 16-bit load commands ======
@@ -388,8 +382,8 @@ function apply(opcodes, opcode_cycles, z80, memory)
 	opcode_cycles[0x31] = 12
 	opcodes[0x31] = function()
 		local lower = read_nn()
-		local upper = lshift(read_nn(), 8)
-		reg.sp = band(0xFFFF, upper + lower)
+		local upper = bit32.lshift(read_nn(), 8)
+		reg.sp = bit32.band(0xFFFF, upper + lower)
 	end
 
 	-- ld SP, HL
@@ -413,10 +407,10 @@ function apply(opcodes, opcode_cycles, z80, memory)
 	opcode_cycles[0x08] = 20
 	opcodes[0x08] = function()
 		local lower = read_nn()
-		local upper = lshift(read_nn(), 8)
+		local upper = bit32.lshift(read_nn(), 8)
 		local address = upper + lower
-		write_byte(address, band(reg.sp, 0xFF))
-		write_byte(band(address + 1, 0xFFFF), rshift(band(reg.sp, 0xFF00), 8))
+		write_byte(address, bit32.band(reg.sp, 0xFF))
+		write_byte(bit32.band(address + 1, 0xFFFF), bit32.rshift(bit32.band(reg.sp, 0xFF00), 8))
 	end
 end
 

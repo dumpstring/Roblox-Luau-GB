@@ -1,15 +1,15 @@
 local Gameboy = {}
 
-Gameboy.audio = require("gameboy/cartridge")
-Gameboy.cartridge = require("gameboy/cartridge")
-Gameboy.dma = require("gameboy/dma")
-Gameboy.graphics = require("gameboy/graphics")
-Gameboy.input = require("gameboy/input")
-Gameboy.interrupts = require("gameboy/interrupts")
-Gameboy.io = require("gameboy/io")
-Gameboy.memory = require("gameboy/memory")
-Gameboy.timers = require("gameboy/timers")
-Gameboy.processor = require("gameboy/z80")
+Gameboy.audio = require(script.audio)
+Gameboy.cartridge = require(script.cartridge)
+Gameboy.dma = require(script.dma)
+Gameboy.graphics = require(script.graphics)
+Gameboy.input = require(script.input)
+Gameboy.interrupts = require(script.interrupts)
+Gameboy.io = require(script.io)
+Gameboy.memory = require(script.memory)
+Gameboy.timers = require(script.timers)
+Gameboy.processor = require(script.z80)
 
 function Gameboy:initialize()
 	self.audio.initialize()
@@ -141,12 +141,14 @@ function Gameboy:run_until_ret()
 end
 
 local gameboy_defaults = {}
+
 for k, v in pairs(Gameboy) do
 	gameboy_defaults[k] = v
 end
 
 Gameboy.new = function(overrides)
 	local new_gameboy = {}
+
 	for k, v in pairs(gameboy_defaults) do
 		if overrides[k] then
 			new_gameboy[k] = overrides[k]
@@ -156,11 +158,8 @@ Gameboy.new = function(overrides)
 	end
 
 	new_gameboy.memory = new_gameboy.memory.new(new_gameboy)
-
 	new_gameboy.io = new_gameboy.io.new(new_gameboy)
-
 	new_gameboy.interrupts = new_gameboy.interrupts.new(new_gameboy)
-
 	new_gameboy.timers = new_gameboy.timers.new(new_gameboy)
 
 	new_gameboy.audio = new_gameboy.audio.new(new_gameboy)

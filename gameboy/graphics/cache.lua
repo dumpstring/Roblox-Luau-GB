@@ -1,5 +1,3 @@
-local bit32 = require("bit")
-
 local Cache = {}
 
 function Cache.new(graphics)

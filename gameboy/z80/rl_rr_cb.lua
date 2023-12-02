@@ -1,13 +1,4 @@
-local bit32 = require("bit")
-
-local lshift = bit32.lshift
-local rshift = bit32.rshift
-local band = bit32.band
-local bxor = bit32.bxor
-local bor = bit32.bor
-local bnor = bit32.bnor
-
-function apply(opcodes, opcode_cycles, z80, memory)
+local function apply(opcodes, opcode_cycles, z80, memory)
 	local read_nn = z80.read_nn
 	local reg = z80.registers
 	local flags = reg.flags
@@ -19,10 +10,10 @@ function apply(opcodes, opcode_cycles, z80, memory)
 
 	-- ====== GMB Rotate and Shift Commands ======
 	local reg_rlc = function(value)
-		value = lshift(value, 1)
+		value = bit32.lshift(value, 1)
 		-- move what would be bit 8 into the carry
-		flags.c = band(value, 0x100) ~= 0
-		value = band(value, 0xFF)
+		flags.c = bit32.band(value, 0x100) ~= 0
+		value = bit32.band(value, 0xFF)
 		-- also copy the carry into bit 0
 		if flags.c then
 			value = value + 1
@@ -34,14 +25,14 @@ function apply(opcodes, opcode_cycles, z80, memory)
 	end
 
 	local reg_rl = function(value)
-		value = lshift(value, 1)
+		value = bit32.lshift(value, 1)
 		-- move the carry into bit 0
 		if flags.c then
 			value = value + 1
 		end
 		-- now move what would be bit 8 into the carry
-		flags.c = band(value, 0x100) ~= 0
-		value = band(value, 0xFF)
+		flags.c = bit32.band(value, 0x100) ~= 0
+		value = bit32.band(value, 0xFF)
 
 		flags.z = value == 0
 		flags.h = false
@@ -51,8 +42,8 @@ function apply(opcodes, opcode_cycles, z80, memory)
 
 	local reg_rrc = function(value)
 		-- move bit 0 into the carry
-		flags.c = band(value, 0x1) ~= 0
-		value = rshift(value, 1)
+		flags.c = bit32.band(value, 0x1) ~= 0
+		value = bit32.rshift(value, 1)
 		-- also copy the carry into bit 7
 		if flags.c then
 			value = value + 0x80
@@ -69,10 +60,10 @@ function apply(opcodes, opcode_cycles, z80, memory)
 			value = value + 0x100
 		end
 		-- move bit 0 into the carry
-		flags.c = band(value, 0x1) ~= 0
-		value = rshift(value, 1)
+		flags.c = bit32.band(value, 0x1) ~= 0
+		value = bit32.rshift(value, 1)
 		-- for safety, this should be a nop?
-		-- value = band(value, 0xFF)
+		-- value = bit32.band(value, 0xFF)
 		flags.z = value == 0
 		flags.h = false
 		flags.n = false
@@ -105,7 +96,7 @@ function apply(opcodes, opcode_cycles, z80, memory)
 
 	-- ====== CB: Extended Rotate and Shift ======
 
-	cb = {}
+	local cb = {}
 
 	-- rlc r
 	cb[0x00] = function()
@@ -245,8 +236,8 @@ function apply(opcodes, opcode_cycles, z80, memory)
 
 	local reg_sla = function(value)
 		-- copy bit 7 into carry
-		flags.c = band(value, 0x80) == 0x80
-		value = band(lshift(value, 1), 0xFF)
+		flags.c = bit32.band(value, 0x80) == 0x80
+		value = bit32.band(bit32.lshift(value, 1), 0xFF)
 		flags.z = value == 0
 		flags.h = false
 		flags.n = false
@@ -256,8 +247,8 @@ function apply(opcodes, opcode_cycles, z80, memory)
 
 	local reg_srl = function(value)
 		-- copy bit 0 into carry
-		flags.c = band(value, 0x1) == 1
-		value = rshift(value, 1)
+		flags.c = bit32.band(value, 0x1) == 1
+		value = bit32.rshift(value, 1)
 		flags.z = value == 0
 		flags.h = false
 		flags.n = false
@@ -268,7 +259,7 @@ function apply(opcodes, opcode_cycles, z80, memory)
 	local reg_sra = function(value)
 		local arith_value = reg_srl(value)
 		-- if bit 6 is set, copy it to bit 7
-		if band(arith_value, 0x40) ~= 0 then
+		if bit32.band(arith_value, 0x40) ~= 0 then
 			arith_value = arith_value + 0x80
 		end
 		add_cycles(4)
@@ -276,7 +267,7 @@ function apply(opcodes, opcode_cycles, z80, memory)
 	end
 
 	local reg_swap = function(value)
-		value = rshift(band(value, 0xF0), 4) + lshift(band(value, 0xF), 4)
+		value = bit32.rshift(bit32.band(value, 0xF0), 4) + bit32.lshift(bit32.band(value, 0xF), 4)
 		flags.z = value == 0
 		flags.n = false
 		flags.h = false
@@ -402,7 +393,7 @@ function apply(opcodes, opcode_cycles, z80, memory)
 
 	-- ====== GMB Singlebit Operation Commands ======
 	local reg_bit = function(value, bit)
-		flags.z = band(value, lshift(0x1, bit)) == 0
+		flags.z = bit32.band(value, bit32.lshift(0x1, bit)) == 0
 		flags.n = false
 		flags.h = true
 		return
@@ -417,9 +408,9 @@ function apply(opcodes, opcode_cycles, z80, memory)
 			cb[cb_op]()
 			return
 		end
-		local high_half_nybble = rshift(band(cb_op, 0xC0), 6)
-		local reg_index = band(cb_op, 0x7)
-		local bit = rshift(band(cb_op, 0x38), 3)
+		local high_half_nybble = bit32.rshift(bit32.band(cb_op, 0xC0), 6)
+		local reg_index = bit32.band(cb_op, 0x7)
+		local bit = bit32.rshift(bit32.band(cb_op, 0x38), 3)
 		if high_half_nybble == 0x1 then
 			-- bit n,r
 			if reg_index == 0 then
@@ -453,58 +444,58 @@ function apply(opcodes, opcode_cycles, z80, memory)
 			-- note: this is REALLY stupid, but it works around some floating point
 			-- limitations in Lua.
 			if reg_index == 0 then
-				reg.b = band(reg.b, bxor(reg.b, lshift(0x1, bit)))
+				reg.b = bit32.band(reg.b, bit32.bxor(reg.b, bit32.lshift(0x1, bit)))
 			end
 			if reg_index == 1 then
-				reg.c = band(reg.c, bxor(reg.c, lshift(0x1, bit)))
+				reg.c = bit32.band(reg.c, bit32.bxor(reg.c, bit32.lshift(0x1, bit)))
 			end
 			if reg_index == 2 then
-				reg.d = band(reg.d, bxor(reg.d, lshift(0x1, bit)))
+				reg.d = bit32.band(reg.d, bit32.bxor(reg.d, bit32.lshift(0x1, bit)))
 			end
 			if reg_index == 3 then
-				reg.e = band(reg.e, bxor(reg.e, lshift(0x1, bit)))
+				reg.e = bit32.band(reg.e, bit32.bxor(reg.e, bit32.lshift(0x1, bit)))
 			end
 			if reg_index == 4 then
-				reg.h = band(reg.h, bxor(reg.h, lshift(0x1, bit)))
+				reg.h = bit32.band(reg.h, bit32.bxor(reg.h, bit32.lshift(0x1, bit)))
 			end
 			if reg_index == 5 then
-				reg.l = band(reg.l, bxor(reg.l, lshift(0x1, bit)))
+				reg.l = bit32.band(reg.l, bit32.bxor(reg.l, bit32.lshift(0x1, bit)))
 			end
 			if reg_index == 6 then
-				write_byte(reg.hl(), band(read_byte(reg.hl()), bxor(read_byte(reg.hl()), lshift(0x1, bit))))
+				write_byte(reg.hl(), bit32.band(read_byte(reg.hl()), bit32.bxor(read_byte(reg.hl()), bit32.lshift(0x1, bit))))
 				add_cycles(8)
 			end
 			if reg_index == 7 then
-				reg.a = band(reg.a, bxor(reg.a, lshift(0x1, bit)))
+				reg.a = bit32.band(reg.a, bit32.bxor(reg.a, bit32.lshift(0x1, bit)))
 			end
 		end
 
 		if high_half_nybble == 0x3 then
 			-- set n, r
 			if reg_index == 0 then
-				reg.b = bor(lshift(0x1, bit), reg.b)
+				reg.b = bit32.bor(bit32.lshift(0x1, bit), reg.b)
 			end
 			if reg_index == 1 then
-				reg.c = bor(lshift(0x1, bit), reg.c)
+				reg.c = bit32.bor(bit32.lshift(0x1, bit), reg.c)
 			end
 			if reg_index == 2 then
-				reg.d = bor(lshift(0x1, bit), reg.d)
+				reg.d = bit32.bor(bit32.lshift(0x1, bit), reg.d)
 			end
 			if reg_index == 3 then
-				reg.e = bor(lshift(0x1, bit), reg.e)
+				reg.e = bit32.bor(bit32.lshift(0x1, bit), reg.e)
 			end
 			if reg_index == 4 then
-				reg.h = bor(lshift(0x1, bit), reg.h)
+				reg.h = bit32.bor(bit32.lshift(0x1, bit), reg.h)
 			end
 			if reg_index == 5 then
-				reg.l = bor(lshift(0x1, bit), reg.l)
+				reg.l = bit32.bor(bit32.lshift(0x1, bit), reg.l)
 			end
 			if reg_index == 6 then
-				write_byte(reg.hl(), bor(lshift(0x1, bit), read_byte(reg.hl())))
+				write_byte(reg.hl(), bit32.bor(bit32.lshift(0x1, bit), read_byte(reg.hl())))
 				add_cycles(8)
 			end
 			if reg_index == 7 then
-				reg.a = bor(lshift(0x1, bit), reg.a)
+				reg.a = bit32.bor(bit32.lshift(0x1, bit), reg.a)
 			end
 		end
 	end

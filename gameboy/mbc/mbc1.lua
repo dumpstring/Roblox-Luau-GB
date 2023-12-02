@@ -1,5 +1,3 @@
-local bit32 = require("bit")
-
 local Mbc1 = {}
 
 function Mbc1.new()
@@ -12,7 +10,7 @@ function Mbc1.new()
 	mbc1.mode = 0 --0 = ROM bank mode, 1 = RAM bank mode
 	mbc1.ram_enable = false
 	mbc1.mt = {}
-	mbc1.mt.__index = function(table, address)
+	mbc1.mt.__index = function(_: any, address)
 		-- Lower 16k: return the first bank, always
 		if address <= 0x3FFF then
 			return mbc1.raw_data[address]
@@ -36,7 +34,7 @@ function Mbc1.new()
 
 		return 0x00
 	end
-	mbc1.mt.__newindex = function(table, address, value)
+	mbc1.mt.__newindex = function(_: any, address, value)
 		if address <= 0x1FFF then
 			if bit32.band(0x0A, value) == 0x0A then
 				mbc1.ram_enable = true

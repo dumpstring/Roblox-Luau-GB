@@ -1,13 +1,4 @@
-local bit32 = require("bit")
-
-local lshift = bit32.lshift
-local rshift = bit32.rshift
-local band = bit32.band
-local bxor = bit32.bxor
-local bor = bit32.bor
-local bnor = bit32.bnor
-
-function apply(opcodes, opcode_cycles, z80, memory, interrupts)
+local function apply(opcodes, opcode_cycles, z80, memory, interrupts)
 	local read_nn = z80.read_nn
 	local reg = z80.registers
 	local flags = reg.flags
@@ -22,7 +13,7 @@ function apply(opcodes, opcode_cycles, z80, memory, interrupts)
 		-- so store the current PC to the stack
 
 		reg.sp = (reg.sp + 0xFFFF) % 0x10000
-		write_byte(reg.sp, rshift(reg.pc, 8))
+		write_byte(reg.sp, bit32.rshift(reg.pc, 8))
 		reg.sp = (reg.sp + 0xFFFF) % 0x10000
 		write_byte(reg.sp, reg.pc % 0x100)
 
@@ -81,9 +72,9 @@ function apply(opcodes, opcode_cycles, z80, memory, interrupts)
 
 	local ret = function()
 		local lower = read_byte(reg.sp)
-		reg.sp = band(0xFFFF, reg.sp + 1)
-		local upper = lshift(read_byte(reg.sp), 8)
-		reg.sp = band(0xFFFF, reg.sp + 1)
+		reg.sp = bit32.band(0xFFFF, reg.sp + 1)
+		local upper = bit32.lshift(read_byte(reg.sp), 8)
+		reg.sp = bit32.band(0xFFFF, reg.sp + 1)
 		reg.pc = upper + lower
 		z80.add_cycles(12)
 	end
@@ -136,10 +127,10 @@ function apply(opcodes, opcode_cycles, z80, memory, interrupts)
 	local function call_address(address)
 		-- reg.pc points at the next instruction after the call,
 		-- so store the current PC to the stack
-		reg.sp = band(0xFFFF, reg.sp - 1)
-		write_byte(reg.sp, rshift(band(reg.pc, 0xFF00), 8))
-		reg.sp = band(0xFFFF, reg.sp - 1)
-		write_byte(reg.sp, band(reg.pc, 0xFF))
+		reg.sp = bit32.band(0xFFFF, reg.sp - 1)
+		write_byte(reg.sp, bit32.rshift(bit32.band(reg.pc, 0xFF00), 8))
+		reg.sp = bit32.band(0xFFFF, reg.sp - 1)
+		write_byte(reg.sp, bit32.band(reg.pc, 0xFF))
 
 		reg.pc = address
 	end

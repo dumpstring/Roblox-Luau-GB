@@ -1,8 +1,6 @@
-local bit32 = require("bit")
-
-local Cache = require("gameboy/graphics/cache")
-local Palette = require("gameboy/graphics/palette")
-local Registers = require("gameboy/graphics/registers")
+local Cache = require(script.cache)
+local Palette = require(script.palette)
+local Registers = require(script.registers)
 
 local Graphics = {}
 
@@ -12,10 +10,8 @@ function Graphics.new(modules)
 	local io = modules.io
 	local memory = modules.memory
 	local timers = modules.timers
-	local processor = modules.processor
-
+	
 	local graphics = {}
-
 	graphics.cache = Cache.new(graphics)
 	graphics.palette = Palette.new(graphics, modules)
 	graphics.registers = Registers.new(graphics, modules, graphics.cache)
@@ -47,10 +43,10 @@ function Graphics.new(modules)
 	graphics.vram.bank = 0
 	graphics.vram_map = {}
 	graphics.vram_map.mt = {}
-	graphics.vram_map.mt.__index = function(table, address)
+	graphics.vram_map.mt.__index = function(_: any, address: number)
 		return graphics.vram[address + (16 * 1024 * graphics.vram.bank)]
 	end
-	graphics.vram_map.mt.__newindex = function(table, address, value)
+	graphics.vram_map.mt.__newindex = function(_: any, address, value)
 		graphics.vram[address + (16 * 1024 * graphics.vram.bank)] = value
 		if address >= 0x8000 and address <= 0x97FF then
 			graphics.cache.refreshTile(address, graphics.vram.bank)
@@ -72,20 +68,22 @@ function Graphics.new(modules)
 			graphics.cache.refreshTileIndex(x, y, 0x9C00, graphics.cache.map_1, graphics.cache.map_1_attr)
 		end
 	end
+
 	setmetatable(graphics.vram_map, graphics.vram_map.mt)
 	memory.map_block(0x80, 0x9F, graphics.vram_map, 0)
 
 	graphics.oam_raw = memory.generate_block(0xA0, 0xFE00)
 	graphics.oam = {}
 	graphics.oam.mt = {}
-	graphics.oam.mt.__index = function(table, address)
+
+	graphics.oam.mt.__index = function(_: any, address)
 		if address <= 0xFE9F then
 			return graphics.oam_raw[address]
 		end
 		-- out of range? So sorry, return nothing
 		return 0x00
 	end
-	graphics.oam.mt.__newindex = function(table, address, byte)
+	graphics.oam.mt.__newindex = function(_: any, address, byte)
 		if address <= 0xFE9F then
 			graphics.oam_raw[address] = byte
 			graphics.cache.refreshOamEntry(math.floor((address - 0xFE00) / 4))
@@ -97,20 +95,15 @@ function Graphics.new(modules)
 	memory.map_block(0xFE, 0xFE, graphics.oam, 0)
 
 	io.write_logic[0x4F] = function(byte)
-		if graphics.gameboy.type == graphics.gameboy.types.color then
+		local gameboy = rawget(graphics, "gameboy")
+
+		if gameboy.type == gameboy.types.color then
 			io.ram[0x4F] = bit32.band(0x1, byte)
 			graphics.vram.bank = bit32.band(0x1, byte)
 		else
 			-- Not sure if the write mask should apply in DMG / SGB mode
 			io.ram[0x4F] = byte
 		end
-	end
-
-	graphics.initialize = function(gameboy)
-		graphics.gameboy = gameboy
-		graphics.registers.status.SetMode(2)
-		graphics.clear_screen()
-		graphics.reset()
 	end
 
 	graphics.reset = function()
@@ -134,6 +127,13 @@ function Graphics.new(modules)
 
 		graphics.clear_screen()
 		graphics.registers.status.SetMode(2)
+	end
+
+	graphics.initialize = function(gameboy)
+		graphics.gameboy = gameboy
+		graphics.registers.status.SetMode(2)
+		graphics.clear_screen()
+		graphics.reset()
 	end
 
 	graphics.save_state = function()
@@ -213,10 +213,6 @@ function Graphics.new(modules)
 		io.write_logic[ports.LCDC](io.ram[ports.LCDC])
 	end
 
-	local time_at_this_mode = function()
-		return timers.system_clock - graphics.last_edge
-	end
-
 	local scanline_data = {}
 	scanline_data.x = 0
 	scanline_data.bg_tile_x = 0
@@ -247,120 +243,6 @@ function Graphics.new(modules)
 		end
 
 		graphics.lcdstat = lcdstat
-	end
-
-	io.write_logic[ports.LY] = function(byte)
-		-- LY, writes reset the counter
-		io.ram[ports.LY] = 0
-		graphics.refresh_lcdstat()
-	end
-
-	io.write_logic[ports.LYC] = function(byte)
-		-- LY, writes reset the counter
-		io.ram[ports.LYC] = byte
-		graphics.refresh_lcdstat()
-	end
-
-	-- HBlank: Period between scanlines
-	local handle_mode = {}
-	handle_mode[0] = function()
-		if timers.system_clock - graphics.last_edge > 204 then
-			graphics.last_edge = graphics.last_edge + 204
-			io.ram[ports.LY] = io.ram[ports.LY] + 1
-			if io.ram[ports.LY] == io.ram[ports.LYC] then
-				-- set the LY compare bit
-				io.ram[ports.STAT] = bit32.bor(io.ram[ports.STAT], 0x4)
-			else
-				-- clear the LY compare bit
-				io.ram[ports.STAT] = bit32.band(io.ram[ports.STAT], 0xFB)
-			end
-
-			if io.ram[ports.LY] >= 144 then
-				graphics.registers.status.SetMode(1)
-				graphics.vblank_count = graphics.vblank_count + 1
-				interrupts.raise(interrupts.VBlank)
-			else
-				graphics.registers.status.SetMode(2)
-			end
-
-			graphics.refresh_lcdstat()
-		else
-			graphics.next_edge = graphics.last_edge + 204
-		end
-	end
-
-	--VBlank: nothing to do except wait for the next frame
-	handle_mode[1] = function()
-		if timers.system_clock - graphics.last_edge > 456 then
-			graphics.last_edge = graphics.last_edge + 456
-			io.ram[ports.LY] = io.ram[ports.LY] + 1
-			graphics.refresh_lcdstat()
-		else
-			graphics.next_edge = graphics.last_edge + 456
-		end
-
-		if io.ram[ports.LY] >= 154 then
-			io.ram[ports.LY] = 0
-			graphics.initialize_frame()
-			graphics.registers.status.SetMode(2)
-			graphics.refresh_lcdstat()
-		end
-
-		if io.ram[ports.LY] == io.ram[ports.LYC] then
-			-- set the LY compare bit
-			io.ram[ports.STAT] = bit32.bor(io.ram[ports.STAT], 0x4)
-		else
-			-- clear the LY compare bit
-			io.ram[ports.STAT] = bit32.band(io.ram[ports.STAT], 0xFB)
-		end
-	end
-
-	-- OAM Read: OAM cannot be accessed
-	handle_mode[2] = function()
-		if timers.system_clock - graphics.last_edge > 80 then
-			graphics.last_edge = graphics.last_edge + 80
-			graphics.initialize_scanline()
-			graphics.registers.status.SetMode(3)
-			graphics.refresh_lcdstat()
-		else
-			graphics.next_edge = graphics.last_edge + 80
-		end
-	end
-	-- VRAM Read: Neither VRAM, OAM, nor CGB palettes can be read
-	handle_mode[3] = function()
-		local duration = timers.system_clock - graphics.last_edge
-		graphics.draw_next_pixels(duration)
-		if timers.system_clock - graphics.last_edge > 172 then
-			graphics.last_edge = graphics.last_edge + 172
-			graphics.draw_sprites_into_scanline(io.ram[ports.LY], scanline_data.bg_index, scanline_data.bg_priority)
-			graphics.registers.status.SetMode(0)
-			-- If enabled, fire an HBlank interrupt
-			graphics.refresh_lcdstat()
-			-- If the hblank dma is active, copy the next block
-			dma.do_hblank()
-		else
-			graphics.next_edge = graphics.last_edge + 172
-		end
-	end
-
-	graphics.update = function()
-		if graphics.registers.display_enabled then
-			handle_mode[graphics.registers.status.mode]()
-		else
-			-- erase our clock debt, so we don't do stupid timing things when the
-			-- display is enabled again later
-			graphics.last_edge = timers.system_clock
-			graphics.next_edge = timers.system_clock
-			graphics.registers.status.SetMode(0)
-			io.ram[ports.LY] = 0
-			graphics.refresh_lcdstat()
-		end
-	end
-
-	local function plot_pixel(buffer, x, y, r, g, b)
-		buffer[y][x][1] = r
-		buffer[y][x][2] = g
-		buffer[y][x][3] = b
 	end
 
 	local frame_data = {}
@@ -531,7 +413,7 @@ function Graphics.new(modules)
 					-- There are more than 10 sprites in the table, so we need to pick
 					-- a candidate to vote off the island (possibly this one)
 					local lowest_priority = i
-					local lowest_priotity_index = nil
+					local lowest_priority_index = nil
 					for j = 1, #active_sprites do
 						local lowest_x = graphics.cache.oam[lowest_priority].x
 						local candidate_x = graphics.cache.oam[active_sprites[j]].x
@@ -549,8 +431,8 @@ function Graphics.new(modules)
 		end
 
 		-- now, for every sprite in the list, display it on the current scanline
-		for i = #active_sprites, 1, -1 do
-			local sprite = graphics.cache.oam[active_sprites[i]]
+		for j = #active_sprites, 1, -1 do
+			local sprite = graphics.cache.oam[active_sprites[j]]
 
 			local sub_y = 16 - ((sprite.y + 16) - scanline)
 			if sprite.vertical_flip then
@@ -572,7 +454,7 @@ function Graphics.new(modules)
 				local display_x = sprite.x + x
 				if display_x >= 0 and display_x < 160 then
 					local sub_x = x
-					if x_flipped then
+					if sprite.horizontal_flip then
 						sub_x = 7 - x
 					end
 					local subpixel_index = tile[sub_x][sub_y]
@@ -588,6 +470,114 @@ function Graphics.new(modules)
 			end
 		end
 		if #active_sprites > 0 then
+		end
+	end
+
+	io.write_logic[ports.LY] = function(byte)
+		-- LY, writes reset the counter
+		io.ram[ports.LY] = 0
+		graphics.refresh_lcdstat()
+	end
+
+	io.write_logic[ports.LYC] = function(byte)
+		-- LY, writes reset the counter
+		io.ram[ports.LYC] = byte
+		graphics.refresh_lcdstat()
+	end
+
+	-- HBlank: Period between scanlines
+	local handle_mode = {}
+	handle_mode[0] = function()
+		if timers.system_clock - graphics.last_edge > 204 then
+			graphics.last_edge = graphics.last_edge + 204
+			io.ram[ports.LY] = io.ram[ports.LY] + 1
+			if io.ram[ports.LY] == io.ram[ports.LYC] then
+				-- set the LY compare bit
+				io.ram[ports.STAT] = bit32.bor(io.ram[ports.STAT], 0x4)
+			else
+				-- clear the LY compare bit
+				io.ram[ports.STAT] = bit32.band(io.ram[ports.STAT], 0xFB)
+			end
+
+			if io.ram[ports.LY] >= 144 then
+				graphics.registers.status.SetMode(1)
+				graphics.vblank_count = graphics.vblank_count + 1
+				interrupts.raise(interrupts.VBlank)
+			else
+				graphics.registers.status.SetMode(2)
+			end
+
+			graphics.refresh_lcdstat()
+		else
+			graphics.next_edge = graphics.last_edge + 204
+		end
+	end
+
+	--VBlank: nothing to do except wait for the next frame
+	handle_mode[1] = function()
+		if timers.system_clock - graphics.last_edge > 456 then
+			graphics.last_edge = graphics.last_edge + 456
+			io.ram[ports.LY] = io.ram[ports.LY] + 1
+			graphics.refresh_lcdstat()
+		else
+			graphics.next_edge = graphics.last_edge + 456
+		end
+
+		if io.ram[ports.LY] >= 154 then
+			io.ram[ports.LY] = 0
+			graphics.initialize_frame()
+			graphics.registers.status.SetMode(2)
+			graphics.refresh_lcdstat()
+		end
+
+		if io.ram[ports.LY] == io.ram[ports.LYC] then
+			-- set the LY compare bit
+			io.ram[ports.STAT] = bit32.bor(io.ram[ports.STAT], 0x4)
+		else
+			-- clear the LY compare bit
+			io.ram[ports.STAT] = bit32.band(io.ram[ports.STAT], 0xFB)
+		end
+	end
+
+	-- OAM Read: OAM cannot be accessed
+	handle_mode[2] = function()
+		if timers.system_clock - graphics.last_edge > 80 then
+			graphics.last_edge = graphics.last_edge + 80
+			graphics.initialize_scanline()
+			graphics.registers.status.SetMode(3)
+			graphics.refresh_lcdstat()
+		else
+			graphics.next_edge = graphics.last_edge + 80
+		end
+	end
+	-- VRAM Read: Neither VRAM, OAM, nor CGB palettes can be read
+	handle_mode[3] = function()
+		local duration = timers.system_clock - graphics.last_edge
+		graphics.draw_next_pixels(duration)
+		if timers.system_clock - graphics.last_edge > 172 then
+			graphics.last_edge = graphics.last_edge + 172
+			graphics.draw_sprites_into_scanline(io.ram[ports.LY], scanline_data.bg_index, scanline_data.bg_priority)
+			graphics.registers.status.SetMode(0)
+			-- If enabled, fire an HBlank interrupt
+			graphics.refresh_lcdstat()
+			-- If the hblank dma is active, copy the next block
+			dma.do_hblank()
+		else
+			graphics.next_edge = graphics.last_edge + 172
+		end
+	end
+
+	graphics.update = function()
+		if graphics.registers.display_enabled then
+			handle_mode[graphics.registers.status.mode]()
+		else
+			-- erase our clock debt, so we don't do stupid timing things when the
+			-- display is enabled again later
+			graphics.last_edge = timers.system_clock
+			graphics.next_edge = timers.system_clock
+			graphics.registers.status.SetMode(0)
+			io.ram[ports.LY] = 0
+			graphics.refresh_lcdstat()
 		end
 	end
 

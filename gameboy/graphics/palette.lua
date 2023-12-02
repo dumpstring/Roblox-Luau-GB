@@ -1,5 +1,3 @@
-local bit32 = require("bit")
-
 local Palette = {}
 
 function Palette.new(graphics, modules)

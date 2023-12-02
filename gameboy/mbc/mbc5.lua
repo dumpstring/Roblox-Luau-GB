@@ -1,5 +1,3 @@
-local bit32 = require("bit")
-
 local Mbc5 = {}
 
 function Mbc5.new()
@@ -13,7 +11,7 @@ function Mbc5.new()
 	mbc5.rumble_pak = false
 	mbc5.rumbling = false
 	mbc5.mt = {}
-	mbc5.mt.__index = function(table, address)
+	mbc5.mt.__index = function(_: any, address)
 		-- Lower 16k: return the first bank, always
 		if address <= 0x3FFF then
 			return mbc5.raw_data[address]
@@ -30,7 +28,7 @@ function Mbc5.new()
 		end
 		return 0x00
 	end
-	mbc5.mt.__newindex = function(table, address, value)
+	mbc5.mt.__newindex = function(_: any, address, value)
 		if address <= 0x1FFF then
 			if bit32.band(0x0A, value) == 0x0A then
 				mbc5.ram_enable = true

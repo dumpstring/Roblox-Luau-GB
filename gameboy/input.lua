@@ -1,11 +1,7 @@
-local bit32 = require("bit")
-
 local Input = {}
 
 function Input.new(modules)
-	local memory = modules.memory
 	local io = modules.io
-
 	local input = {}
 
 	input.keys = {}

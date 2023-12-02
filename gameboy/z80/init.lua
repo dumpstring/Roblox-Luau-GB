@@ -1,23 +1,14 @@
-local bit32 = require("bit")
+local apply_arithmetic = require(script.arithmetic)
+local apply_bitwise = require(script.bitwise)
+local apply_call = require(script.call)
+local apply_cp = require(script.cp)
+local apply_inc_dec = require(script.inc_dec)
+local apply_jp = require(script.jp)
+local apply_ld = require(script.ld)
+local apply_rl_rr_cb = require(script.rl_rr_cb)
+local apply_stack = require(script.stack)
 
-local lshift = bit32.lshift
-local rshift = bit32.rshift
-local band = bit32.band
-local bxor = bit32.bxor
-local bor = bit32.bor
-local bnot = bit32.bnot
-
-local apply_arithmetic = require("gameboy/z80/arithmetic")
-local apply_bitwise = require("gameboy/z80/bitwise")
-local apply_call = require("gameboy/z80/call")
-local apply_cp = require("gameboy/z80/cp")
-local apply_inc_dec = require("gameboy/z80/inc_dec")
-local apply_jp = require("gameboy/z80/jp")
-local apply_ld = require("gameboy/z80/ld")
-local apply_rl_rr_cb = require("gameboy/z80/rl_rr_cb")
-local apply_stack = require("gameboy/z80/stack")
-
-local Registers = require("gameboy/z80/registers")
+local Registers = require(script.registers)
 
 local Z80 = {}
 
@@ -125,7 +116,6 @@ function Z80.new(modules)
 
 	local opcodes = {}
 	local opcode_cycles = {}
-	local opcode_names = {}
 
 	-- Initialize the opcode_cycles table with 4 as a base cycle, so we only
 	-- need to care about variations going forward
@@ -147,8 +137,6 @@ function Z80.new(modules)
 		return nn
 	end
 
-	local read_at_hl = z80.read_at_hl
-	local set_at_hl = z80.set_at_hl
 	local read_nn = z80.read_nn
 
 	apply_arithmetic(opcodes, opcode_cycles, z80, memory)
@@ -197,26 +185,26 @@ function Z80.new(modules)
 		-- instruction.
 		-- TODO: Research real hardware's behavior in these cases
 		local stop_value = read_nn()
+
 		if stop_value == 0x00 then
 			print("STOP instruction not followed by NOP!")
-		--halted = 1
 		else
 			print("Unimplemented WEIRDNESS after 0x10")
 		end
 
-		if band(io.ram[0x4D], 0x01) ~= 0 then
+		if bit32.band(io.ram[0x4D], 0x01) ~= 0 then
 			--speed switch!
 			print("Switching speeds!")
 			if z80.double_speed then
 				z80.add_cycles = add_cycles_normal
 				z80.double_speed = false
-				io.ram[0x4D] = band(io.ram[0x4D], 0x7E) + 0x00
+				io.ram[0x4D] = bit32.band(io.ram[0x4D], 0x7E) + 0x00
 				timers:set_normal_speed()
 				print("Switched to Normal Speed")
 			else
 				z80.add_cycles = add_cycles_double
 				z80.double_speed = true
-				io.ram[0x4D] = band(io.ram[0x4D], 0x7E) + 0x80
+				io.ram[0x4D] = bit32.band(io.ram[0x4D], 0x7E) + 0x80
 				timers:set_double_speed()
 				print("Switched to Double Speed")
 			end
@@ -228,15 +216,9 @@ function Z80.new(modules)
 		interrupts.disable()
 		--print("Disabled interrupts with DI")
 	end
-	-- ei
-	opcodes[0xFB] = function()
-		interrupts.enable()
-		--print("Enabled interrupts with EI")
-		z80.service_interrupt()
-	end
-
+	
 	z80.service_interrupt = function()
-		local fired = band(io.ram[0xFF], io.ram[0x0F])
+		local fired = bit32.band(io.ram[0xFF], io.ram[0x0F])
 		if fired ~= 0 then
 			z80.halted = 0
 			if interrupts.enabled ~= 0 then
@@ -247,18 +229,18 @@ function Z80.new(modules)
 				-- interrupt vector
 				local vector = 0x40
 				local count = 0
-				while band(fired, 0x1) == 0 and count < 5 do
+				while bit32.band(fired, 0x1) == 0 and count < 5 do
 					vector = vector + 0x08
-					fired = rshift(fired, 1)
+					fired = bit32.rshift(fired, 1)
 					count = count + 1
 				end
 				-- we need to clear the corresponding bit first, to avoid infinite loops
-				io.ram[0x0F] = bxor(lshift(0x1, count), io.ram[0x0F])
+				io.ram[0x0F] = bit32.bxor(bit32.lshift(0x1, count), io.ram[0x0F])
 
-				reg.sp = band(0xFFFF, reg.sp - 1)
-				write_byte(reg.sp, rshift(band(reg.pc, 0xFF00), 8))
-				reg.sp = band(0xFFFF, reg.sp - 1)
-				write_byte(reg.sp, band(reg.pc, 0xFF))
+				reg.sp = bit32.band(0xFFFF, reg.sp - 1)
+				write_byte(reg.sp, bit32.rshift(bit32.band(reg.pc, 0xFF00), 8))
+				reg.sp = bit32.band(0xFFFF, reg.sp - 1)
+				write_byte(reg.sp, bit32.band(reg.pc, 0xFF))
 
 				reg.pc = vector
 
@@ -269,6 +251,13 @@ function Z80.new(modules)
 		return false
 	end
 
+	-- ei
+	opcodes[0xFB] = function()
+		interrupts.enable()
+		--print("Enabled interrupts with EI")
+		z80.service_interrupt()
+	end
+
 	-- register this as a callback with the interrupts module
 	interrupts.service_handler = z80.service_interrupt
 
@@ -276,7 +265,7 @@ function Z80.new(modules)
 	-- go ahead and "define" them with the following panic
 	-- function
 	local function undefined_opcode()
-		local opcode = read_byte(band(reg.pc - 1, 0xFFFF))
+		local opcode = read_byte(bit32.band(reg.pc - 1, 0xFFFF))
 		print(string.format("Unhandled opcode!: %x", opcode))
 	end
 
@@ -291,7 +280,7 @@ function Z80.new(modules)
 		if z80.halted == 0 then
 			local opcode = read_byte(reg.pc)
 			-- Advance to one byte beyond the opcode
-			reg.pc = band(reg.pc + 1, 0xFFFF)
+			reg.pc = bit32.band(reg.pc + 1, 0xFFFF)
 			-- Run the instruction
 			opcodes[opcode]()
 

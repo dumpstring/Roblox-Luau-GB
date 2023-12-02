@@ -1,24 +1,12 @@
-local bit32 = require("bit")
-
-local lshift = bit32.lshift
-local rshift = bit32.rshift
-local band = bit32.band
-local bxor = bit32.bxor
-local bor = bit32.bor
-local bnor = bit32.bnor
-
-function apply(opcodes, opcode_cycles, z80, memory)
+local function apply(opcodes, opcode_cycles, z80, memory)
 	local read_nn = z80.read_nn
 	local reg = z80.registers
 	local flags = reg.flags
 
-	local read_byte = memory.read_byte
-	local write_byte = memory.write_byte
-
 	-- ====== GMB Jumpcommands ======
 	local jump_to_nnnn = function()
 		local lower = read_nn()
-		local upper = lshift(read_nn(), 8)
+		local upper = bit32.lshift(read_nn(), 8)
 		reg.pc = upper + lower
 	end
 

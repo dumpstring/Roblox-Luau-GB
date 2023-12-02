@@ -1,5 +1,4 @@
-local bit32 = require("bit")
-
+--!nolint ForRange
 local Io = {}
 
 function Io.new(modules)
@@ -96,7 +95,7 @@ function Io.new(modules)
 	io.ram = memory.generate_block(0x100)
 	io.block = {}
 	io.block.mt = {}
-	io.block.mt.__index = function(table, address)
+	io.block.mt.__index = function(_: any, address)
 		address = address - 0xFF00
 		if io.read_logic[address] then
 			return io.read_logic[address]()
@@ -109,7 +108,9 @@ function Io.new(modules)
 	io.write_mask[ports.LY] = 0x00
 
 	io.write_logic[0x70] = function(byte)
-		if io.gameboy.type == io.gameboy.types.color then
+		local gameboy = rawget(io, "gameboy")
+		
+		if gameboy.type == gameboy.types.color then
 			io.ram[0x70] = bit32.band(0x7, byte)
 			memory.work_ram_1.bank = bit32.band(0x7, byte)
 			if memory.work_ram_1.bank == 0 then
@@ -121,7 +122,7 @@ function Io.new(modules)
 		end
 	end
 
-	io.block.mt.__newindex = function(table, address, value)
+	io.block.mt.__newindex = function(_: any, address, value)
 		address = address - 0xFF00
 		if io.write_mask[address] then
 			local masked_value = bit32.band(value, io.write_mask[address])

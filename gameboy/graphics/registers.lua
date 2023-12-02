@@ -1,5 +1,3 @@
-local bit32 = require("bit")
-
 local Registers = {}
 
 function Registers.new(graphics, modules, cache)

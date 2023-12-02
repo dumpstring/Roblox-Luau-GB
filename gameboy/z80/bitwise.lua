@@ -1,24 +1,11 @@
-local bit32 = require("bit")
-
-local lshift = bit32.lshift
-local band = bit32.band
-local band = bit32.band
-local bxor = bit32.bxor
-local bor = bit32.bor
-local bnor = bit32.bnor
-
-function apply(opcodes, opcode_cycles, z80, memory)
+local function apply(opcodes, opcode_cycles, z80, memory)
 	local read_at_hl = z80.read_at_hl
-	local set_at_hl = z80.set_at_hl
 	local read_nn = z80.read_nn
 	local reg = z80.registers
 	local flags = reg.flags
 
-	local read_byte = memory.read_byte
-	local write_byte = memory.write_byte
-
-	and_a_with = function(value)
-		reg.a = band(reg.a, value)
+	local and_a_with = function(value)
+		reg.a = bit32.band(reg.a, value)
 		flags.z = reg.a == 0
 		flags.n = false
 		flags.h = true
@@ -49,7 +36,7 @@ function apply(opcodes, opcode_cycles, z80, memory)
 		and_a_with(read_at_hl())
 	end
 	opcodes[0xA7] = function()
-		--reg.a = band(reg.a, value)
+		--reg.a = bit32.band(reg.a, value)
 		flags.z = reg.a == 0
 		flags.n = false
 		flags.h = true
@@ -62,8 +49,8 @@ function apply(opcodes, opcode_cycles, z80, memory)
 		and_a_with(read_nn())
 	end
 
-	xor_a_with = function(value)
-		reg.a = bxor(reg.a, value)
+	local xor_a_with = function(value)
+		reg.a = bit32.bxor(reg.a, value)
 		flags.z = reg.a == 0
 		flags.n = false
 		flags.h = false
@@ -107,8 +94,8 @@ function apply(opcodes, opcode_cycles, z80, memory)
 		xor_a_with(read_nn())
 	end
 
-	or_a_with = function(value)
-		reg.a = bor(reg.a, value)
+	local or_a_with = function(value)
+		reg.a = bit32.bor(reg.a, value)
 		flags.z = reg.a == 0
 		flags.n = false
 		flags.h = false
@@ -153,7 +140,7 @@ function apply(opcodes, opcode_cycles, z80, memory)
 
 	-- cpl
 	opcodes[0x2F] = function()
-		reg.a = bxor(reg.a, 0xFF)
+		reg.a = bit32.bxor(reg.a, 0xFF)
 		flags.n = true
 		flags.h = true
 	end

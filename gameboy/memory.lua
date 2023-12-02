@@ -1,5 +1,3 @@
-local bit32 = require("bit")
-
 local Memory = {}
 
 function Memory.new(modules)
@@ -44,10 +42,10 @@ function Memory.new(modules)
 	-- Default, unmapped memory
 	memory.unmapped = {}
 	memory.unmapped.mt = {}
-	memory.unmapped.mt.__index = function(table, key)
+	memory.unmapped.mt.__index = function(_: any, key)
 		return 0x00
 	end
-	memory.unmapped.mt.__newindex = function(table, key, value)
+	memory.unmapped.mt.__newindex = function(_: any, key, value)
 		-- Do nothing!
 	end
 	setmetatable(memory.unmapped, memory.unmapped.mt)
@@ -59,26 +57,15 @@ function Memory.new(modules)
 	memory.work_ram_1 = {}
 	memory.work_ram_1.bank = 1
 	memory.work_ram_1.mt = {}
-	memory.work_ram_1.mt.__index = function(table, address)
+	memory.work_ram_1.mt.__index = function(_: any, address)
 		return memory.work_ram_1_raw[address + ((memory.work_ram_1.bank - 1) * 4 * 1024)]
 	end
-	memory.work_ram_1.mt.__newindex = function(table, address, value)
+	memory.work_ram_1.mt.__newindex = function(_: any, address, value)
 		memory.work_ram_1_raw[address + ((memory.work_ram_1.bank - 1) * 4 * 1024)] = value
 	end
 	setmetatable(memory.work_ram_1, memory.work_ram_1.mt)
 	memory.map_block(0xC0, 0xCF, memory.work_ram_0, 0)
 	memory.map_block(0xD0, 0xDF, memory.work_ram_1, 0)
-
-	memory.work_ram_echo = {}
-	memory.work_ram_echo.mt = {}
-	memory.work_ram_echo.mt.__index = function(table, key)
-		return memory.read_byte(key - 0xE000 + 0xC000)
-	end
-	memory.work_ram_echo.mt.__newindex = function(table, key, value)
-		memory.write_byte(key - 0xE000 + 0xC000, value)
-	end
-	setmetatable(memory.work_ram_echo, memory.work_ram_echo.mt)
-	memory.map_block(0xE0, 0xFD, memory.work_ram_echo, 0)
 
 	memory.read_byte = function(address)
 		local high_byte = bit32.band(address, 0xFF00)
@@ -89,6 +76,18 @@ function Memory.new(modules)
 		local high_byte = bit32.band(address, 0xFF00)
 		block_map[high_byte][address] = byte
 	end
+
+	memory.work_ram_echo = {}
+	memory.work_ram_echo.mt = {}
+	memory.work_ram_echo.mt.__index = function(_: any, key)
+		return memory.read_byte(key - 0xE000 + 0xC000)
+	end
+	memory.work_ram_echo.mt.__newindex = function(_: any, key, value)
+		memory.write_byte(key - 0xE000 + 0xC000, value)
+	end
+	setmetatable(memory.work_ram_echo, memory.work_ram_echo.mt)
+	memory.map_block(0xE0, 0xFD, memory.work_ram_echo, 0)
+
 
 	memory.reset = function()
 		-- It's tempting to want to zero out all 0x0000-0xFFFF, but
@@ -139,10 +138,10 @@ function Memory.new(modules)
 	-- Fancy: make access to ourselves act as an array, reading / writing memory using the above
 	-- logic. This should cause memory[address] to behave just as it would on hardware.
 	memory.mt = {}
-	memory.mt.__index = function(table, key)
+	memory.mt.__index = function(_: any, key)
 		return memory.read_byte(key)
 	end
-	memory.mt.__newindex = function(table, key, value)
+	memory.mt.__newindex = function(_: any, key, value)
 		memory.write_byte(key, value)
 	end
 	setmetatable(memory, memory.mt)

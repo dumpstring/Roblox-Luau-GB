@@ -1,19 +1,17 @@
-local rom_header = require("gameboy/rom_header")
+local root = script.Parent
+local rom_header = require(root.rom_header)
 
-local MbcNone = require("gameboy/mbc/none")
-local Mbc1 = require("gameboy/mbc/mbc1")
-local Mbc2 = require("gameboy/mbc/mbc2")
-local Mbc3 = require("gameboy/mbc/mbc3")
-local Mbc5 = require("gameboy/mbc/mbc5")
+local MbcNone = require(root.mbc.none)
+local Mbc1 = require(root.mbc.mbc1)
+local Mbc2 = require(root.mbc.mbc2)
+local Mbc3 = require(root.mbc.mbc3)
+local Mbc5 = require(root.mbc.mbc5)
 
 local Cartridge = {}
 
 function Cartridge.new(modules)
 	local cartridge = {}
-
-	local io = modules.io
 	local memory = modules.memory
-	local ports = io.ports
 
 	local mbc_none = MbcNone.new()
 	local mbc1 = Mbc1.new()
@@ -91,7 +89,7 @@ function Cartridge.new(modules)
 
 		-- Add a guard to cartridge.raw_data, such that any out-of-bounds reads return 0x00
 		cartridge.raw_data.mt = {}
-		cartridge.raw_data.mt.__index = function(table, address)
+		cartridge.raw_data.mt.__index = function(_: any, address)
 			-- Data doesn't exist? Tough luck; return 0x00
 			return 0x00
 		end
@@ -124,6 +122,7 @@ function Cartridge.new(modules)
 			return mbc_mappings[cartridge.header.mbc_type].mbc:save_state()
 		else
 			mbc_mappings[0x00].mbc:save_state()
+			return nil
 		end
 	end
 
@@ -134,6 +133,7 @@ function Cartridge.new(modules)
 			return mbc_mappings[cartridge.header.mbc_type].mbc:load_state(state_data)
 		else
 			mbc_mappings[0x00].mbc:load_state(state_data)
+			return nil
 		end
 	end
 

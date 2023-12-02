@@ -1,20 +1,6 @@
-local bit32 = require("bit")
-
 local rom_header = {}
 -- given an entire rom (as a string reference),
 -- print out the various header data for debugging
-
-local function read_file_into_byte_array(file)
-	local byte_array = {}
-	local byte = file:read()
-	local i = 0
-	while byte do
-		byte_array[i] = byte
-		byte = file:read()
-		i = i + 1
-	end
-	return byte_array
-end
 
 local function extract_string(data, s, e)
 	local str = ""

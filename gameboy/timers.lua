@@ -1,5 +1,3 @@
-local bit32 = require("bit")
-
 local Timers = {}
 
 function Timers.new(modules)
@@ -35,7 +33,7 @@ function Timers.new(modules)
 	io.write_logic[io.ports.DIV] = function(byte)
 		-- Reset the DIV timer, in this case by re-basing it to the
 		-- current system clock, which will roll it back to 0 on this cycle
-		div_base = timers.system_clock
+		timers.div_base = timers.system_clock
 	end
 
 	io.read_logic[io.ports.DIV] = function()

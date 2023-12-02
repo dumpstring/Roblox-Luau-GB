@@ -1,32 +1,19 @@
-local bit32 = require("bit")
-
-local lshift = bit32.lshift
-local rshift = bit32.rshift
-local band = bit32.band
-local bxor = bit32.bxor
-local bor = bit32.bor
-local bnor = bit32.bnor
-
-function apply(opcodes, opcode_cycles, z80, memory)
+local function apply(opcodes, opcode_cycles, z80, memory)
 	local read_at_hl = z80.read_at_hl
-	local set_at_hl = z80.set_at_hl
 	local read_nn = z80.read_nn
 	local reg = z80.registers
 	local flags = reg.flags
 
-	local read_byte = memory.read_byte
-	local write_byte = memory.write_byte
-
 	local add_to_a = function(value)
 		-- half-carry
-		flags.h = band(reg.a, 0xF) + band(value, 0xF) > 0xF
+		flags.h = bit32.band(reg.a, 0xF) + bit32.band(value, 0xF) > 0xF
 
 		local sum = reg.a + value
 
 		-- carry (and overflow correction)
 		flags.c = sum > 0xFF
 
-		reg.a = band(sum, 0xFF)
+		reg.a = bit32.band(sum, 0xFF)
 
 		flags.z = reg.a == 0
 		flags.n = false
@@ -38,12 +25,12 @@ function apply(opcodes, opcode_cycles, z80, memory)
 		if flags.c then
 			carry = 1
 		end
-		flags.h = band(reg.a, 0xF) + band(value, 0xF) + carry > 0xF
+		flags.h = bit32.band(reg.a, 0xF) + bit32.band(value, 0xF) + carry > 0xF
 		local sum = reg.a + value + carry
 
 		-- carry (and overflow correction)
 		flags.c = sum > 0xFF
-		reg.a = band(sum, 0xFF)
+		reg.a = bit32.band(sum, 0xFF)
 
 		flags.z = reg.a == 0
 		flags.n = false
@@ -115,32 +102,32 @@ function apply(opcodes, opcode_cycles, z80, memory)
 		adc_to_a(read_nn())
 	end
 
-	sub_from_a = function(value)
+	local sub_from_a = function(value)
 		-- half-carry
-		flags.h = band(reg.a, 0xF) - band(value, 0xF) < 0
+		flags.h = bit32.band(reg.a, 0xF) - bit32.band(value, 0xF) < 0
 		reg.a = reg.a - value
 
 		-- carry (and overflow correction)
 		flags.c = reg.a < 0 or reg.a > 0xFF
-		reg.a = band(reg.a, 0xFF)
+		reg.a = bit32.band(reg.a, 0xFF)
 
 		flags.z = reg.a == 0
 		flags.n = true
 	end
 
-	sbc_from_a = function(value)
+	local sbc_from_a = function(value)
 		local carry = 0
 		if flags.c then
 			carry = 1
 		end
 		-- half-carry
-		flags.h = band(reg.a, 0xF) - band(value, 0xF) - carry < 0
+		flags.h = bit32.band(reg.a, 0xF) - bit32.band(value, 0xF) - carry < 0
 
 		local difference = reg.a - value - carry
 
 		-- carry (and overflow correction)
 		flags.c = difference < 0 or difference > 0xFF
-		reg.a = band(difference, 0xFF)
+		reg.a = bit32.band(difference, 0xFF)
 
 		flags.z = reg.a == 0
 		flags.n = true
@@ -219,7 +206,7 @@ function apply(opcodes, opcode_cycles, z80, memory)
 		local a = reg.a
 		if not flags.n then
 			-- Addition Mode, adjust BCD for previous addition-like instruction
-			if band(0xF, a) > 0x9 or flags.h then
+			if bit32.band(0xF, a) > 0x9 or flags.h then
 				a = a + 0x6
 			end
 			if a > 0x9F or flags.c then
@@ -228,7 +215,7 @@ function apply(opcodes, opcode_cycles, z80, memory)
 		else
 			-- Subtraction mode! Adjust BCD for previous subtraction-like instruction
 			if flags.h then
-				a = band(a - 0x6, 0xFF)
+				a = bit32.band(a - 0x6, 0xFF)
 			end
 			if flags.c then
 				a = a - 0x60
@@ -239,25 +226,25 @@ function apply(opcodes, opcode_cycles, z80, memory)
 		flags.z = false
 
 		-- If a is greater than 0xFF, set the carry flag
-		if band(0x100, a) == 0x100 then
+		if bit32.band(0x100, a) == 0x100 then
 			flags.c = true
 		end
 		-- Note: Do NOT clear the carry flag otherwise. This is how hardware
 		-- behaves, yes it's weird.
 
-		reg.a = band(a, 0xFF)
+		reg.a = bit32.band(a, 0xFF)
 		-- Update zero flag based on A's contents
 		flags.z = reg.a == 0
 	end
 
-	add_to_hl = function(value)
+	local add_to_hl = function(value)
 		-- half carry
-		flags.h = band(reg.hl(), 0xFFF) + band(value, 0xFFF) > 0xFFF
+		flags.h = bit32.band(reg.hl(), 0xFFF) + bit32.band(value, 0xFFF) > 0xFFF
 		local sum = reg.hl() + value
 
 		-- carry
 		flags.c = sum > 0xFFFF or sum < 0x0000
-		reg.set_hl(band(sum, 0xFFFF))
+		reg.set_hl(bit32.band(sum, 0xFFFF))
 		flags.n = false
 	end
 
@@ -282,43 +269,43 @@ function apply(opcodes, opcode_cycles, z80, memory)
 	-- inc rr
 	opcode_cycles[0x03] = 8
 	opcodes[0x03] = function()
-		reg.set_bc(band(reg.bc() + 1, 0xFFFF))
+		reg.set_bc(bit32.band(reg.bc() + 1, 0xFFFF))
 	end
 
 	opcode_cycles[0x13] = 8
 	opcodes[0x13] = function()
-		reg.set_de(band(reg.de() + 1, 0xFFFF))
+		reg.set_de(bit32.band(reg.de() + 1, 0xFFFF))
 	end
 
 	opcode_cycles[0x23] = 8
 	opcodes[0x23] = function()
-		reg.set_hl(band(reg.hl() + 1, 0xFFFF))
+		reg.set_hl(bit32.band(reg.hl() + 1, 0xFFFF))
 	end
 
 	opcode_cycles[0x33] = 8
 	opcodes[0x33] = function()
-		reg.sp = band(reg.sp + 1, 0xFFFF)
+		reg.sp = bit32.band(reg.sp + 1, 0xFFFF)
 	end
 
 	-- dec rr
 	opcode_cycles[0x0B] = 8
 	opcodes[0x0B] = function()
-		reg.set_bc(band(reg.bc() - 1, 0xFFFF))
+		reg.set_bc(bit32.band(reg.bc() - 1, 0xFFFF))
 	end
 
 	opcode_cycles[0x1B] = 8
 	opcodes[0x1B] = function()
-		reg.set_de(band(reg.de() - 1, 0xFFFF))
+		reg.set_de(bit32.band(reg.de() - 1, 0xFFFF))
 	end
 
 	opcode_cycles[0x2B] = 8
 	opcodes[0x2B] = function()
-		reg.set_hl(band(reg.hl() - 1, 0xFFFF))
+		reg.set_hl(bit32.band(reg.hl() - 1, 0xFFFF))
 	end
 
 	opcode_cycles[0x3B] = 8
 	opcodes[0x3B] = function()
-		reg.sp = band(reg.sp - 1, 0xFFFF)
+		reg.sp = bit32.band(reg.sp - 1, 0xFFFF)
 	end
 
 	-- add SP, dd
@@ -326,18 +313,18 @@ function apply(opcodes, opcode_cycles, z80, memory)
 	opcodes[0xE8] = function()
 		local offset = read_nn()
 		-- offset comes in as unsigned 0-255, so convert it to signed -128 - 127
-		if band(offset, 0x80) ~= 0 then
+		if bit32.band(offset, 0x80) ~= 0 then
 			offset = offset + 0xFF00
 		end
 
 		-- half carry
-		--if band(reg.sp, 0xFFF) + offset > 0xFFF or band(reg.sp, 0xFFF) + offset < 0 then
-		flags.h = band(reg.sp, 0xF) + band(offset, 0xF) > 0xF
+		--if bit32.band(reg.sp, 0xFFF) + offset > 0xFFF or bit32.band(reg.sp, 0xFFF) + offset < 0 then
+		flags.h = bit32.band(reg.sp, 0xF) + bit32.band(offset, 0xF) > 0xF
 		-- carry
-		flags.c = band(reg.sp, 0xFF) + band(offset, 0xFF) > 0xFF
+		flags.c = bit32.band(reg.sp, 0xFF) + bit32.band(offset, 0xFF) > 0xFF
 
 		reg.sp = reg.sp + offset
-		reg.sp = band(reg.sp, 0xFFFF)
+		reg.sp = bit32.band(reg.sp, 0xFFFF)
 
 		flags.z = false
 		flags.n = false

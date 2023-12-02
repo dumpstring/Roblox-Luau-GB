@@ -2,6 +2,14 @@
     "name": "Gameboy",
 
     "tree": {
-        "$path": "gameboy"
+        "$className": "DataModel",
+
+        "ReplicatedFirst": {
+            "$className": "ReplicatedFirst",
+            
+            "Gameboy": {
+                "$path": "gameboy"
+            }
+        }
     }
 }

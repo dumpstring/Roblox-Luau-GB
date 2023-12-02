@@ -1,5 +1,3 @@
-local bit32 = require("bit")
-
 local Interrupts = {}
 
 function Interrupts.new(modules)

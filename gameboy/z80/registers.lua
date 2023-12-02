@@ -1,9 +1,3 @@
-local bit32 = require("bit")
-
-local lshift = bit32.lshift
-local band = bit32.band
-local rshift = bit32.rshift
-
 local Registers = {}
 
 function Registers.new()
@@ -39,41 +33,41 @@ function Registers.new()
 	end
 
 	reg.set_f = function(value)
-		reg.flags.z = band(value, 0x80) ~= 0
-		reg.flags.n = band(value, 0x40) ~= 0
-		reg.flags.h = band(value, 0x20) ~= 0
-		reg.flags.c = band(value, 0x10) ~= 0
+		reg.flags.z = bit32.band(value, 0x80) ~= 0
+		reg.flags.n = bit32.band(value, 0x40) ~= 0
+		reg.flags.h = bit32.band(value, 0x20) ~= 0
+		reg.flags.c = bit32.band(value, 0x10) ~= 0
 	end
 
 	reg.af = function()
-		return lshift(reg.a, 8) + reg.f()
+		return bit32.lshift(reg.a, 8) + reg.f()
 	end
 
 	reg.bc = function()
-		return lshift(reg.b, 8) + reg.c
+		return bit32.lshift(reg.b, 8) + reg.c
 	end
 
 	reg.de = function()
-		return lshift(reg.d, 8) + reg.e
+		return bit32.lshift(reg.d, 8) + reg.e
 	end
 
 	reg.hl = function()
-		return lshift(reg.h, 8) + reg.l
+		return bit32.lshift(reg.h, 8) + reg.l
 	end
 
 	reg.set_bc = function(value)
-		reg.b = rshift(band(value, 0xFF00), 8)
-		reg.c = band(value, 0xFF)
+		reg.b = bit32.rshift(bit32.band(value, 0xFF00), 8)
+		reg.c = bit32.band(value, 0xFF)
 	end
 
 	reg.set_de = function(value)
-		reg.d = rshift(band(value, 0xFF00), 8)
-		reg.e = band(value, 0xFF)
+		reg.d = bit32.rshift(bit32.band(value, 0xFF00), 8)
+		reg.e = bit32.band(value, 0xFF)
 	end
 
 	reg.set_hl = function(value)
-		reg.h = rshift(band(value, 0xFF00), 8)
-		reg.l = band(value, 0xFF)
+		reg.h = bit32.rshift(bit32.band(value, 0xFF00), 8)
+		reg.l = bit32.band(value, 0xFF)
 	end
 
 	return registers

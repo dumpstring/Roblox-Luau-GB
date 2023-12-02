@@ -1,5 +1,3 @@
-local bit32 = require("bit")
-
 local Dma = {}
 
 function Dma.new(modules)
@@ -9,6 +7,9 @@ function Dma.new(modules)
 	local memory = modules.memory
 	local timers = modules.timers
 	local ports = io.ports
+
+	local current_mode
+	local display_disabled
 
 	dma.source = 0
 	dma.destination = 0x8000
