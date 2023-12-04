@@ -1,3 +1,4 @@
+--!native
 local Interrupts = {}
 
 function Interrupts.new(modules)

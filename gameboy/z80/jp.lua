@@ -1,3 +1,5 @@
+--!native
+
 local function apply(opcodes, opcode_cycles, z80, memory)
 	local read_nn = z80.read_nn
 	local reg = z80.registers

@@ -1,3 +1,4 @@
+--!native
 local Timers = {}
 
 function Timers.new(modules)
@@ -51,7 +52,8 @@ function Timers.new(modules)
 			local rate_select = bit32.band(io.ram[io.ports.TAC], 0x3)
 			while self.system_clock > self.timer_offset + self.clock_rates[rate_select] do
 				io.ram[io.ports.TIMA] = bit32.band(io.ram[io.ports.TIMA] + 1, 0xFF)
-				self.timer_offset = self.timer_offset + self.clock_rates[rate_select]
+				self.timer_offset += self.clock_rates[rate_select]
+				
 				if io.ram[io.ports.TIMA] == 0x00 then
 					--overflow happened, first reset TIMA to TMA
 					io.ram[io.ports.TIMA] = io.ram[io.ports.TMA]

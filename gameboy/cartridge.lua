@@ -21,6 +21,7 @@ function Cartridge.new(modules)
 
 	cartridge.external_ram = memory.generate_block(128 * 1024)
 	cartridge.external_ram.dirty = false
+	cartridge.loaded = false
 
 	local mbc_mappings = {}
 	mbc_mappings[0x00] = { mbc = mbc_none, options = {} }
@@ -46,11 +47,15 @@ function Cartridge.new(modules)
 
 	cartridge.initialize = function(gameboy)
 		cartridge.gameboy = gameboy
+		cartridge.loaded = false
 	end
 
-	cartridge.load = function(file_data, size: number)
+	cartridge.load = function(file_data: string)
 		print("Reading cartridge into memory...")
-		cartridge.raw_data = table.create(size + 1)
+		cartridge.loaded = false
+
+		local size = #file_data
+		cartridge.raw_data = table.create(size)
 		for i = 0, size - 1 do
 			cartridge.raw_data[i] = file_data:byte(i + 1)
 		end
@@ -88,6 +93,7 @@ function Cartridge.new(modules)
 		end
 
 		setmetatable(cartridge.raw_data, cartridge.raw_data.mt)
+		cartridge.loaded = true
 	end
 
 	cartridge.reset = function()
@@ -106,6 +112,7 @@ function Cartridge.new(modules)
 		-- TODO: Figure out if we care enough to reset
 		-- External RAM here, for games which don't have
 		-- a BATTERY in their cartridge type
+		cartridge.loaded = false
 	end
 
 	cartridge.save_state = function()

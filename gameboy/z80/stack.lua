@@ -1,3 +1,5 @@
+--!native
+
 function apply(opcodes, opcode_cycles, z80, memory)
 	local reg = z80.registers
 

@@ -1,3 +1,5 @@
+--!native
+
 local apply_arithmetic = require(script.arithmetic)
 local apply_bitwise = require(script.bitwise)
 local apply_call = require(script.call)

@@ -1,3 +1,4 @@
+--!native
 local Palette = {}
 
 function Palette.new(graphics, modules)

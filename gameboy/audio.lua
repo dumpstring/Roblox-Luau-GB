@@ -1,3 +1,4 @@
+--!native
 local Audio = {}
 
 function Audio.new(modules)

@@ -1,3 +1,4 @@
+--!native
 local Cache = {}
 
 function Cache.new(graphics)

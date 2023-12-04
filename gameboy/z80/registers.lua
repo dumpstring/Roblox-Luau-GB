@@ -1,3 +1,4 @@
+--!native
 local Registers = {}
 
 function Registers.new()

@@ -1,3 +1,4 @@
+--!native
 local opcode_names = {}
 
 opcode_names[0x00] = "nop"

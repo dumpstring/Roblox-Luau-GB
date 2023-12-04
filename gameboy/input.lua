@@ -1,3 +1,4 @@
+--!native
 local Input = {}
 
 function Input.new(modules)

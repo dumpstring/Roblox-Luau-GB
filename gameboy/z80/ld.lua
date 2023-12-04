@@ -1,3 +1,5 @@
+--!native
+
 local function apply(opcodes, opcode_cycles, z80, memory)
 	local read_at_hl = z80.read_at_hl
 	local set_at_hl = z80.set_at_hl

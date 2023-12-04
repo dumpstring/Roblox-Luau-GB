@@ -1,3 +1,4 @@
+--!native
 --!nolint ForRange
 local Io = {}
 

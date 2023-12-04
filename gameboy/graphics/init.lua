@@ -1,3 +1,5 @@
+--!native
+
 local Cache = require(script.cache)
 local Palette = require(script.palette)
 local Registers = require(script.registers)
@@ -453,11 +455,7 @@ function Graphics.new(modules)
 			for x = 0, 7 do
 				local display_x = sprite.x + x
 				if display_x >= 0 and display_x < 160 then
-					local sub_x = x
-					if sprite.horizontal_flip then
-						sub_x = 7 - x
-					end
-					local subpixel_index = tile[sub_x][sub_y]
+					local subpixel_index = tile[x][sub_y]
 					if subpixel_index > 0 then
 						if (bg_priority[display_x] == false and not sprite.bg_priority) or bg_index[display_x] == 0 or graphics.registers.oam_priority then
 							local subpixel_color = sprite.palette[subpixel_index]

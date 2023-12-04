@@ -1,0 +1,21 @@
+{
+    "version": "2.0.0",
+
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "Deploy Local",
+            "command": "rojo build --output ${env:localappdata}\\Roblox\\Plugins\\Gameboy.rbxm",
+            
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "type": "shell",
+            "label": "Build",
+            "command": "rojo build --output Gameboy.rbxm"
+        }
+    ]
+}

@@ -1,3 +1,4 @@
+--!native
 local Gameboy = {}
 
 Gameboy.audio = require(script.audio)
@@ -84,11 +85,11 @@ function Gameboy:run_until_vblank()
 	local instructions = 0
 	while self.io.ram[self.io.ports.LY] == 144 and instructions < 100000 do
 		self:step()
-		instructions = instructions + 1
+		instructions += 1
 	end
 	while self.io.ram[self.io.ports.LY] ~= 144 and instructions < 100000 do
 		self:step()
-		instructions = instructions + 1
+		instructions += 1
 	end
 	self.audio.update()
 end
@@ -98,7 +99,7 @@ function Gameboy:run_until_hblank()
 	local instructions = 0
 	while old_scanline == self.io.ram[self.io.ports.LY] and instructions < 100000 do
 		self:step()
-		instructions = instructions + 1
+		instructions += 1
 	end
 	self.audio.update()
 end
@@ -146,31 +147,26 @@ for k, v in pairs(Gameboy) do
 	gameboy_defaults[k] = v
 end
 
-Gameboy.new = function(overrides)
+Gameboy.new = function()
 	local new_gameboy = {}
-	overrides = overrides or {}
 
-	for k, v in pairs(gameboy_defaults) do
-		if overrides[k] then
-			new_gameboy[k] = overrides[k]
-		else
-			new_gameboy[k] = gameboy_defaults[k]
-		end
+	for k, v in Gameboy do
+		new_gameboy[k] = v
 	end
+	
+	new_gameboy.memory = Gameboy.memory.new(new_gameboy)
+	new_gameboy.io = Gameboy.io.new(new_gameboy)
+	new_gameboy.interrupts = Gameboy.interrupts.new(new_gameboy)
+	new_gameboy.timers = Gameboy.timers.new(new_gameboy)
 
-	new_gameboy.memory = new_gameboy.memory.new(new_gameboy)
-	new_gameboy.io = new_gameboy.io.new(new_gameboy)
-	new_gameboy.interrupts = new_gameboy.interrupts.new(new_gameboy)
-	new_gameboy.timers = new_gameboy.timers.new(new_gameboy)
+	new_gameboy.audio = Gameboy.audio.new(new_gameboy)
+	new_gameboy.cartridge = Gameboy.cartridge.new(new_gameboy)
+	new_gameboy.dma = Gameboy.dma.new(new_gameboy)
+	new_gameboy.graphics = Gameboy.graphics.new(new_gameboy)
+	new_gameboy.input = Gameboy.input.new(new_gameboy)
+	new_gameboy.processor = Gameboy.processor.new(new_gameboy)
 
-	new_gameboy.audio = new_gameboy.audio.new(new_gameboy)
-	new_gameboy.cartridge = new_gameboy.cartridge.new(new_gameboy)
-	new_gameboy.dma = new_gameboy.dma.new(new_gameboy)
-	new_gameboy.graphics = new_gameboy.graphics.new(new_gameboy)
-	new_gameboy.input = new_gameboy.input.new(new_gameboy)
-	new_gameboy.processor = new_gameboy.processor.new(new_gameboy)
-
-	new_gameboy:initialize()
+	Gameboy.initialize(new_gameboy)
 
 	return new_gameboy
 end

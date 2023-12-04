@@ -1,3 +1,4 @@
+--!native
 local Dma = {}
 
 function Dma.new(modules)

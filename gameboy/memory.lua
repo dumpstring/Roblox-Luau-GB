@@ -1,3 +1,4 @@
+--!native
 local Memory = {}
 
 function Memory.new(modules)

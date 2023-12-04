@@ -1,3 +1,4 @@
+--!native
 local rom_header = {}
 -- given an entire rom (as a string reference),
 -- print out the various header data for debugging

@@ -2,14 +2,14 @@
     "name": "Gameboy",
 
     "tree": {
-        "$className": "DataModel",
+        "$className": "Folder",
 
-        "ReplicatedFirst": {
-            "$className": "ReplicatedFirst",
-            
-            "Gameboy": {
-                "$path": "gameboy"
-            }
+        "Gameboy": {
+            "$path": "gameboy"
+        },
+
+        "Plugin": {
+            "$path": "main.server.lua"
         }
     }
 }
