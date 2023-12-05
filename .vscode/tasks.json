@@ -12,6 +12,7 @@
                 "isDefault": true
             }
         },
+        
         {
             "type": "shell",
             "label": "Build",
