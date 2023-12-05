@@ -96,6 +96,9 @@ local function onInputEnded(input: InputObject, gameProcessed: boolean)
 end
 
 local function runThread()
+	local self = assert(runner)
+	assert(self == coroutine.running())
+
 	local hackRender = Instance.new("Part")
 	hackRender.CFrame = workspace.CurrentCamera.CFrame
 	hackRender.Parent = workspace
@@ -116,7 +119,16 @@ local function runThread()
 		ticker = math.min(ticker + dt * 60, 3)
 
 		while ticker >= 1 do
-			gb:run_until_vblank()
+			for i = 1, HEIGHT do
+				if self ~= runner then
+					return
+				end
+
+				debug.profilebegin(`hblank {i}`)
+				gb:run_until_hblank()
+				debug.profileend()
+			end
+
 			ticker -= 1
 		end
 
@@ -169,7 +181,7 @@ local function onLoadRom()
 		gb:reset()
 
 		gui.Enabled = true
-		runner = task.spawn(runThread)
+		runner = task.defer(runThread)
 	end
 end
 
