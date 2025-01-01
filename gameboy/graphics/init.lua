@@ -27,15 +27,10 @@ function Graphics.new(modules)
     graphics.next_edge = 0
     graphics.lcdstat = false
 
-    graphics.game_screen = {}
+    graphics.game_screen = buffer.create(92160)
 
     graphics.clear_screen = function()
-        for y = 0, 143 do
-            graphics.game_screen[y] = {}
-            for x = 0, 159 do
-                graphics.game_screen[y][x] = { 255, 255, 255 }
-            end
-        end
+        buffer.fill(graphics.game_screen, 0, 255)
     end
 
     graphics.lcd = {}
@@ -317,9 +312,10 @@ function Graphics.new(modules)
                 bg_index = scanline_data.active_tile[sub_x][sub_y]
                 local active_palette = scanline_data.active_attr.palette[bg_index]
 
-                game_screen[ly][dx][1] = active_palette[1]
-                game_screen[ly][dx][2] = active_palette[2]
-                game_screen[ly][dx][3] = active_palette[3]
+                -- game_screen[ly][dx][1] = active_palette[1]
+                buffer.writeu8(game_screen, (ly * 160 + dx) * 4, active_palette[1])
+                buffer.writeu8(game_screen, (ly * 160 + dx) * 4 + 1, active_palette[1])
+                buffer.writeu8(game_screen, (ly * 160 + dx) * 4 + 2, active_palette[1])
             end
 
             scanline_data.bg_index[scanline_data.x] = bg_index
@@ -459,9 +455,9 @@ function Graphics.new(modules)
                     if subpixel_index > 0 then
                         if (bg_priority[display_x] == false and not sprite.bg_priority) or bg_index[display_x] == 0 or graphics.registers.oam_priority then
                             local subpixel_color = sprite.palette[subpixel_index]
-                            game_screen[scanline][display_x][1] = subpixel_color[1]
-                            game_screen[scanline][display_x][2] = subpixel_color[2]
-                            game_screen[scanline][display_x][3] = subpixel_color[3]
+                            buffer.writeu8(game_screen, (scanline * 160 + display_x) * 4, subpixel_color[1])
+                            buffer.writeu8(game_screen, (scanline * 160 + display_x) * 4 + 1, subpixel_color[2])
+                            buffer.writeu8(game_screen, (scanline * 160 + display_x) * 4 + 2, subpixel_color[3])
                         end
                     end
                 end
