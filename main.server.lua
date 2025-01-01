@@ -62,12 +62,11 @@ local ticker = 0
 local paused = false
 local runner: thread?
 local lastTick = os.clock()
-local frameBuffer = buffer.create(size.X * size.Y * 4)
 
-local function updatePaused()
+local function updatePaused(paused)
+	paused = paused
 	pauseBtn.Icon.Image = if paused then "rbxassetid://11423157473" else "rbxassetid://11422923102"
 end
-
 
 local inputMap = {
 	[Enum.KeyCode.Up] = "Up",
@@ -153,8 +152,7 @@ local function onEjectCartridge()
 	if runner then
 		task.cancel(runner)
 		runner = nil
-		paused = false
-		updatePaused()
+		updatePaused(false)
 	end
 
 	gb.cartridge.reset()
@@ -182,11 +180,10 @@ local function onLoadRom()
 
 		gui.Enabled = true
 		runner = task.defer(runThread)
-		paused = false
-		updatePaused()
+		updatePaused(false)
 
 		ejectCartridge.Visible = true
-		ejectCartridge.Visible = true
+		pauseBtn.Visible = true
 	end
 end
 
@@ -202,12 +199,10 @@ windowToggle.Click:Connect(onWindowToggle)
 loadRomBtn.MouseButton1Click:Connect(onLoadRom)
 pauseBtn.MouseButton1Click:Connect(function()
 	if paused then
-        paused = false
-		updatePaused()
+		updatePaused(false)
         runner = task.defer(runThread)
     else
-        paused = true
-		updatePaused()
+		updatePaused(true)
         if runner then
             task.cancel(runner)
             runner = nil
