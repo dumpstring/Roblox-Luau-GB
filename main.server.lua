@@ -63,8 +63,8 @@ local paused = false
 local runner: thread?
 local lastTick = os.clock()
 
-local function updatePaused(paused)
-	paused = paused
+local function updatePaused(pause)
+	paused = pause
 	pauseBtn.Icon.Image = if paused then "rbxassetid://11423157473" else "rbxassetid://11422923102"
 end
 
