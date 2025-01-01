@@ -6,7 +6,6 @@ local Gameboy = require(script.Parent.Gameboy)
 local success = pcall(function()
 	local test = AssetService:CreateEditableImage({Size = Vector2.new(1,1)})
 	local buf = buffer.create(4)
-	print(buffer.len(buf))
 	for i = 0, 3 do
 		buffer.writeu8(buf, i, 1)
 	end
@@ -19,9 +18,9 @@ if not success then
 end
 
 local toolbar = plugin:CreateToolbar("Gameboy Emulator")
-local loadRomBtn = toolbar:CreateButton("Load ROM", "Load a *.gb ROM file.", "rbxassetid://147178256")
-local windowToggle = toolbar:CreateButton("Emulator Window", "Toggle the emulator window.", "rbxassetid://920999449")
-local ejectCartridge = toolbar:CreateButton("Cartridge Reset", "Forces the currently loaded ROM to be stopped.", "rbxassetid://12578031451")
+-- local loadRomBtn = toolbar:CreateButton("Insert ROM", "Load a *.gb ROM file.", "rbxassetid://11422139020")
+local windowToggle = toolbar:CreateButton("Emulator Window", "Toggle the emulator window.", "rbxassetid://12975609170")
+-- local ejectCartridge = toolbar:CreateButton("Remove Cartridge", "Forces the currently loaded ROM to be stopped.", "rbxassetid://12578031451")
 
 local WIDTH = 160
 local HEIGHT = 144
@@ -32,19 +31,23 @@ local gui = plugin:CreateDockWidgetPluginGui("LUAU_GB", WIDGET_INFO)
 gui.Title = "Gameboy Emulator"
 gui.Name = gui.Title
 
+local guiFrame = script.Parent.UI:Clone()
+guiFrame.Parent = gui
+
+local loadRomBtn = guiFrame.Sidebar.Insert
+local pauseBtn = guiFrame.Sidebar.Pause
+local ejectCartridge = guiFrame.Sidebar.Eject
+ejectCartridge.Visible = false
+pauseBtn.Visible = false
+
 local gb = Gameboy.new()
 local size = Vector2.new(WIDTH, HEIGHT)
 
-local emptyBuffer = buffer.create(size.X * size.Y * 4)
-buffer.fill(emptyBuffer, 0, 0)
+local noCartridge = buffer.fromstring(require(script.Parent.Gameboy.nocartridge))
 
-local window = Instance.new("ImageLabel")
-window.Position = UDim2.fromScale(0.5, 0.5)
-window.BackgroundColor3 = Color3.new()
-window.AnchorPoint = Vector2.one / 2
-window.Size = UDim2.fromScale(1, 1)
-window.ResampleMode = "Pixelated"
-window.Parent = gui
+local window : ImageLabel = guiFrame.Screen:Clone()
+guiFrame.Screen:Destroy()
+window.Parent = guiFrame
 
 local aspectRatio = Instance.new("UIAspectRatioConstraint")
 aspectRatio.AspectRatio = WIDTH / HEIGHT
@@ -53,10 +56,18 @@ aspectRatio.Parent = window
 local screen = AssetService:CreateEditableImage({Size = size})
 window.ImageContent = Content.fromObject(screen)
 
+screen:WritePixelsBuffer(Vector2.zero, size, noCartridge)
+
 local ticker = 0
+local paused = false
 local runner: thread?
 local lastTick = os.clock()
 local frameBuffer = buffer.create(size.X * size.Y * 4)
+
+local function updatePaused()
+	pauseBtn.Icon.Image = if paused then "rbxassetid://11423157473" else "rbxassetid://11422923102"
+end
+
 
 local inputMap = {
 	[Enum.KeyCode.Up] = "Up",
@@ -84,7 +95,7 @@ local inputMap = {
 	[Enum.KeyCode.ButtonX] = "B",
 }
 
-local function onInputBegan(input: InputObject, gameProcessed: boolean)
+local function onInputBegan(input: InputObject)
 	local key = inputMap[input.KeyCode]
 
 	if key then
@@ -93,7 +104,7 @@ local function onInputBegan(input: InputObject, gameProcessed: boolean)
 	end
 end
 
-local function onInputEnded(input: InputObject, gameProcessed: boolean)
+local function onInputEnded(input: InputObject)
 	local key = inputMap[input.KeyCode]
 
 	if key then
@@ -129,10 +140,10 @@ local function runThread()
 
 		-- -- read pixels
 		local pixels = gb.graphics.game_screen
-		frameBuffer = buffer.create(buffer.len(pixels))
-		buffer.copy(frameBuffer, 0, pixels)
+		-- frameBuffer = buffer.create(buffer.len(pixels))
+		-- buffer.copy(frameBuffer, 0, pixels)
 
-		screen:WritePixelsBuffer(Vector2.zero, size, frameBuffer)
+		screen:WritePixelsBuffer(Vector2.zero, size, pixels)
 		
 		RunService.Heartbeat:Wait()
 	end
@@ -142,11 +153,14 @@ local function onEjectCartridge()
 	if runner then
 		task.cancel(runner)
 		runner = nil
+		paused = false
+		updatePaused()
 	end
 
 	gb.cartridge.reset()
-	ejectCartridge:SetActive(false)
-	screen:WritePixelsBuffer(Vector2.zero, size, emptyBuffer)
+	ejectCartridge.Visible = false
+	pauseBtn.Visible = false
+	screen:WritePixelsBuffer(Vector2.zero, size, noCartridge)
 end
 
 local function onEnabledChanged()
@@ -168,6 +182,11 @@ local function onLoadRom()
 
 		gui.Enabled = true
 		runner = task.defer(runThread)
+		paused = false
+		updatePaused()
+
+		ejectCartridge.Visible = true
+		ejectCartridge.Visible = true
 	end
 end
 
@@ -178,6 +197,20 @@ onEnabledChanged()
 window.InputBegan:Connect(onInputBegan)
 window.InputEnded:Connect(onInputEnded)
 
-ejectCartridge.Click:Connect(onEjectCartridge)
+ejectCartridge.MouseButton1Click:Connect(onEjectCartridge)
 windowToggle.Click:Connect(onWindowToggle)
-loadRomBtn.Click:Connect(onLoadRom)
+loadRomBtn.MouseButton1Click:Connect(onLoadRom)
+pauseBtn.MouseButton1Click:Connect(function()
+	if paused then
+        paused = false
+		updatePaused()
+        runner = task.defer(runThread)
+    else
+        paused = true
+		updatePaused()
+        if runner then
+            task.cancel(runner)
+            runner = nil
+        end
+    end
+end)

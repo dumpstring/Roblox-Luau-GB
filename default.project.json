@@ -8,6 +8,10 @@
             "$path": "gameboy"
         },
 
+        "UI": {
+            "$path": "UI.rbxm"
+        },
+
         "Plugin": {
             "$path": "main.server.lua"
         }
